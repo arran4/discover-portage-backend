@@ -5,5 +5,7 @@
     <file>qml/ReinstallAction.qml</file>
     <file>qml/UseFlagsInfo.qml</file>
     <file>qml/AddRepositoryDialog.qml</file>
+    <file>qml/GentooNewsPage.qml</file>
+    <file>qml/GentooNewsWindow.qml</file>
  </qresource>
 </RCC>

@@ -14,6 +14,8 @@ set(portage-backend_SRCS
     emerge/UnmaskManager.cpp
     dialogs/UseFlagsDialog.cpp
     utils/QmlEngineUtils.cpp
+    news/PortageNewsReader.cpp
+    news/PortageNewsManager.cpp
     portageui.qrc
 )
 

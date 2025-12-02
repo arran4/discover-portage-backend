@@ -60,6 +60,7 @@ private Q_SLOTS:
     void refreshSources();
     void handleOfficialReposDownloaded();
     void showAddOverlayDialog();
+    void showGentooNewsWindow();
     
 private:
     void loadEnabledRepositories();
@@ -72,6 +73,7 @@ private:
     QStandardItemModel *m_sources;
     DiscoverAction *m_refreshAction;
     DiscoverAction *m_addOverlayAction;
+    DiscoverAction *m_newsAction;
     QList<RepositoryInfo> m_officialRepos;
     QStandardItem *m_noSourcesItem;
 };

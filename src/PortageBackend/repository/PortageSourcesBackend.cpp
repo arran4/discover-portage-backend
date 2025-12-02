@@ -34,11 +34,13 @@ PortageSourcesBackend::PortageSourcesBackend(AbstractResourcesBackend *parent)
     , m_sources(new QStandardItemModel(this))
     , m_refreshAction(new DiscoverAction(QStringLiteral("view-refresh"), i18n("Refresh Repositories"), this))
     , m_addOverlayAction(new DiscoverAction(QStringLiteral("list-add"), i18n("Add Overlay"), this))
+    , m_newsAction(new DiscoverAction(QStringLiteral("news-subscribe"), i18n("Gentoo News"), this))
     , m_noSourcesItem(new QStandardItem(i18n("No repositories configured")))
 {
     m_noSourcesItem->setEnabled(false);
     connect(m_refreshAction, &DiscoverAction::triggered, this, &PortageSourcesBackend::refreshSources);
     connect(m_addOverlayAction, &DiscoverAction::triggered, this, &PortageSourcesBackend::showAddOverlayDialog);
+    connect(m_newsAction, &DiscoverAction::triggered, this, &PortageSourcesBackend::showGentooNewsWindow);
 
     loadEnabledRepositories();
     
@@ -70,7 +72,8 @@ QVariantList PortageSourcesBackend::actions() const
 {
     return {
         QVariant::fromValue<QObject *>(m_refreshAction),
-        QVariant::fromValue<QObject *>(m_addOverlayAction)
+        QVariant::fromValue<QObject *>(m_addOverlayAction),
+        QVariant::fromValue<QObject *>(m_newsAction)
     };
 }
 
@@ -178,6 +181,34 @@ void PortageSourcesBackend::showAddOverlayDialog()
     // Call open() method
     bool openResult = QMetaObject::invokeMethod(dialog, "open");
     qDebug() << "Portage: invokeMethod(open) returned:" << openResult;
+}
+
+void PortageSourcesBackend::showGentooNewsWindow()
+{
+    qDebug() << "Portage: Opening Gentoo News window";
+    
+    // Get QML engine
+    QQmlEngine *engine = QmlEngineUtils::findQmlEngine();
+    if (!engine) {
+        qWarning() << "Portage: No QML engine available";
+        return;
+    }
+    
+    // Create QML component for news window
+    QQmlComponent component(engine, QUrl(QStringLiteral("qrc:/qml/GentooNewsWindow.qml")));
+    
+    if (component.isError()) {
+        qWarning() << "Portage: Failed to load GentooNewsWindow.qml:" << component.errors();
+        return;
+    }
+    
+    QObject *newsWindow = component.create();
+    if (!newsWindow) {
+        qWarning() << "Portage: Failed to create news window";
+        return;
+    }
+    
+    qDebug() << "Portage: Gentoo News window created successfully";
 }
 
 

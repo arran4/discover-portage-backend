@@ -10,6 +10,7 @@
 #include "../dialogs/UseFlagsDialog.h"
 #include "../repository/PortageSourcesBackend.h"
 #include "../utils/QmlEngineUtils.h"
+#include "../news/PortageNewsManager.h"
 
 #include <Category/Category.h>
 #include <resources/StandardBackendUpdater.h>
@@ -58,6 +59,17 @@ PortageBackend::PortageBackend(QObject *parent)
             qDebug() << "PortageBackend: QML singleton PortageInjector created!";
             m_qmlInjector->setQmlEngine(engine);
             return m_qmlInjector;
+        }
+    );
+    
+    // Register PortageNewsManager singleton for QML access
+    qmlRegisterSingletonType<PortageNewsManager>(
+        "org.kde.discover.portage",
+        1, 0,
+        "PortageNewsManager",
+        [](QQmlEngine *, QJSEngine *) -> QObject * {
+            qDebug() << "PortageBackend: QML singleton PortageNewsManager created!";
+            return PortageNewsManager::instance();
         }
     );
     
@@ -188,6 +200,23 @@ ResultsStream *PortageBackend::search(const AbstractResourcesBackend::Filters &f
 
 QList<std::shared_ptr<Category>> PortageBackend::category() const
 {
+    QList<std::shared_ptr<Category>> categories;
+    
+    // Add "Gentoo News" as a special top-level category
+    CategoryFilter newsFilter{CategoryFilter::FilterType::CategoryNameFilter, QLatin1String("gentoo-news")};
+    auto newsCategory = std::make_shared<Category>(
+        i18n("Gentoo News"),
+        QStringLiteral("news-subscribe"),
+        newsFilter,
+        QSet<QString>{displayName()},
+        QList<std::shared_ptr<Category>>{},
+#ifdef DISCOVER_CATEGORY_HAS_TYPE_ENUM
+        Category::Type::Package);
+#else
+        false);
+#endif
+    categories << newsCategory;
+    
     // Root category (all Portage packages)
     CategoryFilter rootFlt{CategoryFilter::FilterType::CategoryNameFilter, QLatin1String("portage_packages")};
 
@@ -228,8 +257,10 @@ QList<std::shared_ptr<Category>> PortageBackend::category() const
 #else
         false); // isAddons = false for old versions
 #endif
+    
+    categories << root;
 
-    return {root};
+    return categories;
 }
 
 int PortageBackend::updatesCount() const
