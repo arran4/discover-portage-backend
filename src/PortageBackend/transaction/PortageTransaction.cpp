@@ -164,6 +164,15 @@ void PortageTransaction::onEmergeFinished(bool success, int exitCode)
         }
         setStatus(DoneStatus);
     } else {
+        QString errorMsg = m_emergeRunner->lastError();
+        if (errorMsg.isEmpty()) {
+            errorMsg = m_emergeRunner->lastOutput();
+        }
+        if (errorMsg.isEmpty()) {
+            errorMsg = i18n("The emerge process failed with exit code %1", exitCode);
+        }
+
+        Q_EMIT distroErrorMessage(i18n("Transaction failed for %1:\n%2", m_resource->packageName(), errorMsg));
         setStatus(DoneWithErrorStatus);
     }
 }
@@ -174,6 +183,23 @@ void PortageTransaction::onDependenciesChecked(const EmergeRunner::EmergeResult 
     qDebug() << "Portage: Dependencies count:" << result.dependencies.size();
     qDebug() << "Portage: Needs unmask:" << result.needsUnmask;
     
+    if (!result.success) {
+        QString errorMsg = result.error;
+        if (errorMsg.isEmpty()) {
+            errorMsg = m_emergeRunner->lastError();
+        }
+        if (errorMsg.isEmpty()) {
+            errorMsg = m_emergeRunner->lastOutput();
+        }
+        if (errorMsg.isEmpty()) {
+            errorMsg = i18n("Failed to calculate dependencies");
+        }
+
+        Q_EMIT distroErrorMessage(i18n("Dependency check failed for %1:\n%2", m_resource->packageName(), errorMsg));
+        setStatus(DoneWithErrorStatus);
+        return;
+    }
+
     if (result.needsUnmask) {
         handleUnmaskRequest(result);
         return;
@@ -208,6 +234,7 @@ void PortageTransaction::handleUnmaskRequest(const EmergeRunner::EmergeResult &r
     // Use the full atoms from emerge --pretend output
     if (result.maskedPackages.isEmpty()) {
         qWarning() << "No masked packages to unmask!";
+        Q_EMIT distroErrorMessage(i18n("Package unmasking failed for %1:\nNo masked packages to unmask.", m_resource->packageName()));
         setStatus(DoneWithErrorStatus);
         return;
     }
@@ -248,6 +275,7 @@ void PortageTransaction::handleUnmaskRequest(const EmergeRunner::EmergeResult &r
             }
         } else {
             qWarning() << "No packages to unmask and no atom to install";
+            Q_EMIT distroErrorMessage(i18n("Package unmasking failed for %1:\nNo valid packages found to install.", m_resource->packageName()));
             setStatus(DoneWithErrorStatus);
         }
         return;
@@ -266,6 +294,7 @@ void PortageTransaction::handleUnmaskRequest(const EmergeRunner::EmergeResult &r
         m_unmaskManager->unmaskPackage(atom, keyword, [this, totalToUnmask, unmaskedCount, atom, atomToInstall](bool success) {
             if (!success) {
                 qWarning() << "Failed to unmask package:" << atom;
+                Q_EMIT distroErrorMessage(i18n("Package unmasking failed for %1:\nFailed to unmask %2.", m_resource->packageName(), atom));
                 setStatus(DoneWithErrorStatus);
                 return;
             }

@@ -227,6 +227,16 @@ void EmergeRunner::uninstallPackage(const QString &atom)
     job->start();
 }
 
+QString EmergeRunner::lastError() const
+{
+    return m_errorBuffer;
+}
+
+QString EmergeRunner::lastOutput() const
+{
+    return m_outputBuffer;
+}
+
 void EmergeRunner::cancel()
 {
     if (m_process && m_process->state() == QProcess::Running) {
