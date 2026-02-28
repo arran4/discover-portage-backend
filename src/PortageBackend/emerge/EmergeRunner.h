@@ -55,6 +55,10 @@ public:
     // Cancel current operation
     void cancel();
 
+    // Get last error and output
+    QString lastError() const;
+    QString lastOutput() const;
+
 Q_SIGNALS:
     void dependenciesChecked(const EmergeResult &result);
     void outputReceived(const QString &line);
