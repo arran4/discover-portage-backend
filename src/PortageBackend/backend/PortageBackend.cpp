@@ -11,6 +11,7 @@
 #include "../repository/PortageSourcesBackend.h"
 #include "../utils/QmlEngineUtils.h"
 #include "../news/PortageNewsManager.h"
+#include "../auth/PortageAuthClient.h"
 
 #include <Category/Category.h>
 #include <resources/StandardBackendUpdater.h>
@@ -36,6 +37,8 @@ PortageBackend::PortageBackend(QObject *parent)
     , m_qmlInjector(new PortageQmlInjector(this))
     , m_sourcesBackend(new PortageSourcesBackend(this))
     , m_initialized(false)
+    , m_fetchingUpdatesProgress(100)
+    , m_isFetchingUpdates(false)
 {
     qDebug() << "Portage: Initializing backend";
     
@@ -344,8 +347,44 @@ AbstractBackendUpdater *PortageBackend::backendUpdater() const
 
 void PortageBackend::checkForUpdates()
 {
-    qDebug() << "Portage: checkForUpdates() stub";
-    Q_EMIT updatesCountChanged();
+    if (m_isFetchingUpdates) {
+        return;
+    }
+
+    qDebug() << "Portage: checking for updates...";
+
+    m_isFetchingUpdates = true;
+    m_fetchingUpdatesProgress = 0;
+    Q_EMIT fetchingUpdatesProgressChanged();
+
+    PortageAuthClient *authClient = new PortageAuthClient(this);
+
+    auto progressCallback = [this](int percent, const QString &message) {
+        if (percent >= 0) {
+            m_fetchingUpdatesProgress = percent;
+            Q_EMIT fetchingUpdatesProgressChanged();
+        }
+    };
+
+    auto resultCallback = [this, authClient](bool success, const QString &output, const QString &error) {
+        if (success) {
+            qDebug() << "Portage: checkForUpdates() succeeded";
+        } else {
+            qWarning() << "Portage: checkForUpdates() failed:" << error;
+        }
+
+        m_fetchingUpdatesProgress = 100;
+        m_isFetchingUpdates = false;
+        Q_EMIT fetchingUpdatesProgressChanged();
+
+        // Reload packages to update available versions and updates count
+        reloadPackages();
+        Q_EMIT updatesCountChanged();
+
+        authClient->deleteLater();
+    };
+
+    authClient->emergeSync(resultCallback, progressCallback);
 }
 
 Transaction *PortageBackend::installApplication(AbstractResource *app)

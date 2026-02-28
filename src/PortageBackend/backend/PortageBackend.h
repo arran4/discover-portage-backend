@@ -30,7 +30,7 @@ public:
     int updatesCount() const override;
     AbstractBackendUpdater *backendUpdater() const override;
     void checkForUpdates() override;
-    int fetchingUpdatesProgress() const override { return 100; }
+    int fetchingUpdatesProgress() const override { return m_fetchingUpdatesProgress; }
 
     Transaction *installApplication(AbstractResource *app) override;
     Transaction *installApplication(AbstractResource *app, const AddonList &addons) override;
@@ -57,4 +57,7 @@ private:
     PortageQmlInjector *m_qmlInjector;
     PortageSourcesBackend *m_sourcesBackend;
     bool m_initialized;
+
+    int m_fetchingUpdatesProgress;
+    bool m_isFetchingUpdates;
 };
